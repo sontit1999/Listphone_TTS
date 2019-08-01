@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -23,11 +24,13 @@ public class PhoneAdapter extends RecyclerView.Adapter<PhoneAdapter.Myviewhoder>
     Context context;
     ArrayList<Person> arrayList;
     int layout;
+    PhoneListener listener;
 
-    public PhoneAdapter(Context context, ArrayList<Person> arrayList,int layout) {
+    public PhoneAdapter(Context context, ArrayList<Person> arrayList,int layout,PhoneListener listener) {
         this.context = context;
         this.arrayList = arrayList;
         this.layout = layout;
+        this.listener = listener;
     }
 
     public PhoneAdapter() {
@@ -41,21 +44,26 @@ public class PhoneAdapter extends RecyclerView.Adapter<PhoneAdapter.Myviewhoder>
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final Myviewhoder myviewhoder, int i) {
+    public void onBindViewHolder(@NonNull final Myviewhoder myviewhoder, final int i) {
          final Person person = arrayList.get(i);
          myviewhoder.tvname.setText(person.getName());
          myviewhoder.tvphone.setText(person.getPhonenumber());
-         //  myviewhoder.bind(i);
+        // lắng nghe
+
+        myviewhoder.checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                person.setIscheck(isChecked);
+            }
+        });
+         myviewhoder.checkBox.setChecked(person.getIscheck());
          myviewhoder.container.setOnClickListener(new View.OnClickListener() {
-             @Override
+              @Override
              public void onClick(View v) {
-                 Intent intent = new Intent(context, Addactivity.class);
-                 intent.putExtra("type","update");
-                 intent.putExtra("name",person.getName());
-                 intent.putExtra("phone",person.getPhonenumber());
-                 context.startActivity(intent);
+                   listener.onClickItem(person);
              }
          });
+
     }
 
     @Override
@@ -78,31 +86,8 @@ public class PhoneAdapter extends RecyclerView.Adapter<PhoneAdapter.Myviewhoder>
             checkBox = (CheckBox) itemView.findViewById(R.id.check);
 
         }
-        /*
-        void bind(int position) {
-
-            // use the sparse boolean array to check
-            if (!itemStateArray.get(position, false)) {
-                checkBox.setChecked(false);}
-            else {
-                checkBox.setChecked(true);
-            }
-        }
-
-        @Override
-        public void onClick(View v) {
-
-            int adapterPosition = getAdapterPosition();
-            if (!itemStateArray.get(adapterPosition, false)) {
-                checkBox.setChecked(true);
-                itemStateArray.put(adapterPosition, true);
-            }
-            else  {
-                checkBox.setChecked(false);
-                itemStateArray.put(adapterPosition, false);
-            }
-
-        }
-       */
+    }
+    public interface PhoneListener{
+        void onClickItem(Person person);
     }
 }

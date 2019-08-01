@@ -1,10 +1,19 @@
 package com.example.listphone_tts.unity;
 
 public class Person {
+    private int id;
     private String linkanh;
     private String name;
     private String phonenumber;
     private Boolean ischeck;
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
 
     public Boolean getIscheck() {
         return ischeck;
@@ -14,7 +23,8 @@ public class Person {
         this.ischeck = ischeck;
     }
 
-    public Person(String linkanh, String name, String phonenumber) {
+    public Person(int id,String linkanh, String name, String phonenumber) {
+        this.id = id;
         this.linkanh = linkanh;
         this.name = name;
         this.phonenumber = phonenumber;

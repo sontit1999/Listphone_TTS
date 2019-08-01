@@ -35,7 +35,7 @@ public class Mydatabase extends SQLiteOpenHelper {
     // hàm add 1 record
     public void addperson(String name,String sdt){
        // queryData("INSERT INTO " + table + "  VALUES('" + person.getName()+ "','" + person.getPhonenumber() + "')");
-        String sql = "INSERT INTO listphone VALUES('" + name +"','" +  sdt + "')";
+        String sql = "INSERT INTO listphone VALUES(null,'" + name +"','" +  sdt + "')";
         queryData(sql);
     }
     @Override

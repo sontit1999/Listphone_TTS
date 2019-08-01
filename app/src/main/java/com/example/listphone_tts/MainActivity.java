@@ -29,8 +29,11 @@ import com.example.listphone_tts.unity.Mydatabase;
 import com.example.listphone_tts.unity.Person;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-public class MainActivity extends AppCompatActivity{
+public class MainActivity extends AppCompatActivity implements PhoneAdapter.PhoneListener{
     public static Mydatabase mydatabase;
     Toolbar toolbar;
     RecyclerView recyclerView;
@@ -44,7 +47,7 @@ public class MainActivity extends AppCompatActivity{
         setContentView(R.layout.activity_main);
         anhxa();
         // tạo bảng danh bạ
-        mydatabase.queryData("CREATE TABLE IF NOT EXISTS listphone(hoten varchar(50),sodienthoai varchar(20))");
+        mydatabase.queryData("CREATE TABLE IF NOT EXISTS listphone(id INTEGER PRIMARY KEY AUTOINCREMENT, hoten varchar(50),sodienthoai varchar(20))");
         setupdata();
         arrsearch = new ArrayList<>(arrayList);
         setuprecyclerview();
@@ -57,9 +60,10 @@ public class MainActivity extends AppCompatActivity{
         Cursor cursor = mydatabase.getData("SELECT * FROM listphone");
         while (cursor.moveToNext()){
             String hoten,sdt;
-            hoten = cursor.getString(0);
-            sdt = cursor.getString(1);
-            arrayList.add(new Person("ffffff",hoten,sdt));
+            int id  = cursor.getInt(0);
+            hoten = cursor.getString(1);
+            sdt = cursor.getString(2);
+            arrayList.add(new Person(id,"link anh",hoten,sdt));
             adapter.notifyDataSetChanged();
         }
     }
@@ -120,7 +124,7 @@ public class MainActivity extends AppCompatActivity{
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         ivadd = (ImageView) findViewById(R.id.iv_add);
         arrayList = new ArrayList<>();
-        adapter = new PhoneAdapter(this,arrayList,R.layout.item_phone);
+        adapter = new PhoneAdapter(this,arrayList,R.layout.item_phone,this);
     }
 
 
@@ -194,15 +198,25 @@ public class MainActivity extends AppCompatActivity{
     // hàm show dialog xác nhận xóa all
     public void showdialog(){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("Delete all ?")
+        builder.setMessage("Delete item sellected ?")
                 .setCancelable(false)
                 .setPositiveButton("CONFIRM",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                mydatabase.Deleteallrecord("listphone");
-                                arrayList.clear();
-                                adapter.notifyDataSetChanged();
+                                  ArrayList<Integer> arrayiddelete = new ArrayList<>();
+                                  for(Person i : arrayList){
+                                      if(i.getIscheck()){
+                                          arrayiddelete.add(i.getId());
+                                      }
+                                  }
+                                  String arrid = arrayiddelete.toString().replace("[","(").replace("]",")") ;
+                                  String sql = "DELETE FROM listphone WHERE id IN " + arrid ;
+                                  mydatabase.queryData(sql);
+                                  arrayList.clear();
+                                  setupdata();
+                                  adapter.notifyDataSetChanged();
                             }
+
                         })
                 .setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
@@ -211,6 +225,17 @@ public class MainActivity extends AppCompatActivity{
                 });
 
         builder.show();
+    }
+
+    @Override
+    public void onClickItem(Person person) {
+        Intent intent = new Intent(this, Addactivity.class);
+                 intent.putExtra("type","update");
+                 intent.putExtra("id",person.getId());
+                 intent.putExtra("name",person.getName());
+                 intent.putExtra("phone",person.getPhonenumber());
+
+                 this.startActivity(intent);
     }
 }
 

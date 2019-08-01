@@ -20,6 +20,7 @@ public class Addactivity extends AppCompatActivity {
     Button btnadd,btnupdate;
     String type ;
     String nameupdate;
+    int idUpdate;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -29,6 +30,7 @@ public class Addactivity extends AppCompatActivity {
         Intent intent = getIntent();
         if(intent!=null){
             type = intent.getStringExtra("type");
+            idUpdate = intent.getIntExtra("id",999);
             nameupdate = intent.getStringExtra("name");
             edtname.setText(intent.getStringExtra("name"));
             edtphone.setText(intent.getStringExtra("phone"));
@@ -62,7 +64,7 @@ public class Addactivity extends AppCompatActivity {
         btnupdate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String sql = "UPDATE listphone SET hoten = '"+ edtname.getText().toString().trim() + "'" + ", sodienthoai = '" + edtphone.getText().toString().trim() +"' WHERE hoten = '" + nameupdate + "'";
+                String sql = "UPDATE listphone SET hoten = '"+ edtname.getText().toString().trim() + "'" + ", sodienthoai = '" + edtphone.getText().toString().trim() +"' WHERE id = '" + idUpdate + "'";
                 MainActivity.mydatabase.queryData(sql);
                 finish();
             }
