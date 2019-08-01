@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity implements PhoneAdapter.Phon
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         anhxa();
+
         // tạo bảng danh bạ
         mydatabase.queryData("CREATE TABLE IF NOT EXISTS listphone(id INTEGER PRIMARY KEY AUTOINCREMENT, hoten varchar(50),sodienthoai varchar(20))");
         setupdata();
