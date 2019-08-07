@@ -1,10 +1,13 @@
 package com.example.listphone_tts;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -20,6 +23,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -33,51 +37,84 @@ import java.util.Collections;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import io.realm.Case;
+import io.realm.Realm;
+import io.realm.RealmConfiguration;
+import io.realm.RealmResults;
+
 public class MainActivity extends AppCompatActivity implements PhoneAdapter.PhoneListener{
-    public static Mydatabase mydatabase;
-    Toolbar toolbar;
-    RecyclerView recyclerView;
+    private static final int REQUEST_CODE_UPDATE  = 123 ;
+    private Realm realm;
+    @BindView(R.id.toolbar) Toolbar toolbar;
+    @BindView(R.id.recyclerview)  RecyclerView recyclerView;
+    @BindView(R.id.iv_add) ImageView ivadd;
+    @BindView (R.id.edttimkiem) EditText edtsearch;
     ArrayList<Person> arrayList, arrsearch;
+    int indexitemupdate = 0;
     PhoneAdapter adapter;
-    ImageView ivadd;
-    EditText edtsearch;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        anhxa();
-
-        // tạo bảng danh bạ
-        mydatabase.queryData("CREATE TABLE IF NOT EXISTS listphone(id INTEGER PRIMARY KEY AUTOINCREMENT, hoten varchar(50),sodienthoai varchar(20))");
-        setupdata();
-        arrsearch = new ArrayList<>(arrayList);
+        ButterKnife.bind(this);
+        //// khởi tạo realm
+        realm = Realm.getDefaultInstance();
+        // lấy data
+        initdata();
         setuprecyclerview();
         Action();
         Actionbar();
     }
-    // lấy dư liệu từ SQlite add vào arraylist
+    // lấy dư liệu từ Realm add vào arraylist
     private void setupdata() {
         arrayList.clear();
-        Cursor cursor = mydatabase.getData("SELECT * FROM listphone");
-        while (cursor.moveToNext()){
-            String hoten,sdt;
-            int id  = cursor.getInt(0);
-            hoten = cursor.getString(1);
-            sdt = cursor.getString(2);
-            arrayList.add(new Person(id,"link anh",hoten,sdt));
-            adapter.notifyDataSetChanged();
-        }
+        RealmResults<Person> listResult = realm.where(Person.class).findAll();
+        arrayList.addAll(realm.copyFromRealm(listResult));
+        adapter.notifyDataSetChanged();
+    }
+    @OnClick(R.id.iv_add)
+    public void OnImageviewaddClick(View view){
+            Dialog dialog = new Dialog(MainActivity.this);
+            dialog.setTitle("Thêm liên hệ");
+            dialog.setContentView(R.layout.dialog_add);
+            Button btnadd = (Button) dialog.findViewById(R.id.btn_add);
+            Button btnexit = (Button) dialog.findViewById(R.id.btn_huy);
+            EditText edt_name = (EditText) dialog.findViewById(R.id.edt_name);
+            EditText edt_phone = (EditText) dialog.findViewById(R.id.edt_phone);
+            btnexit.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dialog.dismiss();
+                }
+            });
+            btnadd.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Toast.makeText(MainActivity.this, "add", Toast.LENGTH_SHORT).show();
+                        if(edt_phone.getText().toString().trim().isEmpty() || edt_name.getText().toString().trim().isEmpty()){
+                            Toast.makeText(MainActivity.this, "ko dc bỏ trống", Toast.LENGTH_SHORT).show();
+                        }else{
+                            String name,phone;
+                            name = edt_name.getText().toString().trim();
+                            phone = edt_phone.getText().toString().trim();
+                            Person personadd = new Person(5,"link anh",name,phone);
+                            addpersonintorealm(personadd);
+                            arrayList.add(personadd);
+                            adapter.notifyItemInserted(arrayList.size());
+                            dialog.dismiss();
+                        }
+                    }
+                });
+            dialog.show();
+
+
+
     }
     // các sự kiện
     private void Action() {
-        ivadd.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this,Addactivity.class);
-                intent.putExtra("type","add");
-                startActivity(intent);
-            }
-        });
         // lắng nghe sự thay đổi edittext
         edtsearch.addTextChangedListener(new TextWatcher() {
 
@@ -100,15 +137,12 @@ public class MainActivity extends AppCompatActivity implements PhoneAdapter.Phon
                 // TODO Auto-generated method stub
                 // nếu edt trống thì load all list ngược lại kiểm tra xem trong list có danh bạ này ko r .nếu có show ra
                 if(edtsearch.getText().toString().trim().equals("")){
-                    arrayList.addAll(arrsearch);
-                    adapter.notifyDataSetChanged();
+                    setupdata();
                 }else{
+                    String text = "*" + edtsearch.getText().toString().trim() +"*";
                     arrayList.clear();
-                    for(Person i : arrsearch){
-                        if(i.getName().equalsIgnoreCase(edtsearch.getText().toString().trim())){
-                            arrayList.add(i);
-                        }
-                    }
+                    RealmResults<Person> listResult = realm.where(Person.class).like("name", text, Case.INSENSITIVE).findAll();
+                    arrayList.addAll(realm.copyFromRealm(listResult));
                     adapter.notifyDataSetChanged();
                 }
 
@@ -118,14 +152,10 @@ public class MainActivity extends AppCompatActivity implements PhoneAdapter.Phon
 
     }
    // ánh xạ
-    private void anhxa() {
-        edtsearch = (EditText) findViewById(R.id.edttimkiem) ;
-        recyclerView = (RecyclerView) findViewById(R.id.recyclerview);
-        mydatabase = new Mydatabase(this,"danhba.sqlite",null,1);
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
-        ivadd = (ImageView) findViewById(R.id.iv_add);
+    private void initdata() {
         arrayList = new ArrayList<>();
         adapter = new PhoneAdapter(this,arrayList,R.layout.item_phone,this);
+        setupdata();
     }
 
 
@@ -148,13 +178,19 @@ public class MainActivity extends AppCompatActivity implements PhoneAdapter.Phon
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int i) {
                 Person person = arrayList.get(viewHolder.getAdapterPosition());
-                String name = person.getName();
-                mydatabase.deleteonerecord(name,"listphone");
+                deletePerson(person);
                 arrayList.remove(viewHolder.getAdapterPosition());
                 adapter.notifyItemRemoved(viewHolder.getAdapterPosition());
 
             }
         }).attachToRecyclerView(recyclerView);
+    }
+
+    private void deletePerson(Person person) {
+        realm.beginTransaction();
+        RealmResults<Person> rows= realm.where(Person.class).equalTo("id",person.getId()).findAll();
+        rows.deleteAllFromRealm();
+        realm.commitTransaction();
     }
 
     // tạo menu
@@ -190,12 +226,6 @@ public class MainActivity extends AppCompatActivity implements PhoneAdapter.Phon
         });
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Log.d("vongdoi","onstart");
-        setupdata();
-    }
     // hàm show dialog xác nhận xóa all
     public void showdialog(){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -204,17 +234,11 @@ public class MainActivity extends AppCompatActivity implements PhoneAdapter.Phon
                 .setPositiveButton("CONFIRM",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                  ArrayList<Integer> arrayiddelete = new ArrayList<>();
-                                  for(Person i : arrayList){
-                                      if(i.getIscheck()){
-                                          arrayiddelete.add(i.getId());
-                                      }
-                                  }
-                                  String arrid = arrayiddelete.toString().replace("[","(").replace("]",")") ;
-                                  String sql = "DELETE FROM listphone WHERE id IN " + arrid ;
-                                  mydatabase.queryData(sql);
+                                  realm.beginTransaction();
+                                  RealmResults results = realm.where(Person.class).findAll();
+                                  results.deleteAllFromRealm();
+                                  realm.commitTransaction();
                                   arrayList.clear();
-                                  setupdata();
                                   adapter.notifyDataSetChanged();
                             }
 
@@ -229,14 +253,46 @@ public class MainActivity extends AppCompatActivity implements PhoneAdapter.Phon
     }
 
     @Override
-    public void onClickItem(Person person) {
-        Intent intent = new Intent(this, Addactivity.class);
-                 intent.putExtra("type","update");
-                 intent.putExtra("id",person.getId());
-                 intent.putExtra("name",person.getName());
-                 intent.putExtra("phone",person.getPhonenumber());
+    public void onClickItem(Person person,int i) {
+                 indexitemupdate = i;
+                 Intent intent = new Intent(this, Addactivity.class);
+                 intent.putExtra("person",person);
+                 startActivityForResult(intent,REQUEST_CODE_UPDATE);
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode==REQUEST_CODE_UPDATE && resultCode == Activity.RESULT_OK && data!= null){
+            // get data check
+             Person person = (Person) data.getSerializableExtra("person");
+             arrayList.set(indexitemupdate,person);
+             adapter.notifyItemChanged(indexitemupdate);
+//           arrayList.add((Person) data.getSerializableExtra("person"));
+//           int size = arrayList.size();
+//           adapter.notifyItemRangeInserted(size,1);
+        }
+    }
+    // thêm 1 person
+    public  void addpersonintorealm(Person person){
+        realm.beginTransaction();
 
-                 this.startActivity(intent);
+        // lấy id max để tìm ra id object thêm vào
+        Number currentIdNum = realm.where(Person.class).max("id");
+        int nextId;
+        if(currentIdNum == null) {
+            nextId = 1;
+        } else {
+            nextId = currentIdNum.intValue() + 1;
+        }
+
+        Person person1 = new Person();
+        person1.setId(nextId);
+        person1.setLinkanh(person.getLinkanh());
+        person1.setName(person.getName());
+        person1.setPhonenumber(person.getPhonenumber());
+        person1.setIscheck(person.getIscheck());
+        realm.insertOrUpdate(person1); // using insert API
+        realm.commitTransaction();
     }
 }
 
