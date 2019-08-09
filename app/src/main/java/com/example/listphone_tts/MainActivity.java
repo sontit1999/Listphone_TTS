@@ -46,6 +46,7 @@ import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 
 public class MainActivity extends AppCompatActivity implements PhoneAdapter.PhoneListener{
+    // sơn tít
     private static final int REQUEST_CODE_UPDATE  = 123 ;
     private Realm realm;
     @BindView(R.id.toolbar) Toolbar toolbar;
